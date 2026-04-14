@@ -9,6 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent
 SAVE_FOLDER = Path(os.getenv("SAVE_FOLDER", BASE_DIR / "picturesfolder_downloads"))
 URLS_FILE = Path(os.getenv("URLS_FILE", BASE_DIR / "urls.txt"))
 SEEN_FILE = Path(os.getenv("SEEN_FILE", BASE_DIR / "seen_tweets.json"))
+MAX_DOWNLOADS_PER_RUN = int(os.getenv("MAX_DOWNLOADS_PER_RUN", "1"))
 
 
 def load_seen_ids() -> set[str]:
@@ -71,6 +72,10 @@ def main() -> int:
     skipped = 0
 
     for post_url in urls:
+        if downloaded >= MAX_DOWNLOADS_PER_RUN:
+            print(f"Reached per-run limit: {MAX_DOWNLOADS_PER_RUN}")
+            break
+
         post_id = extract_post_id(post_url)
         if post_id in seen_ids:
             print(f"Skipping already seen post: {post_id}")
@@ -82,7 +87,10 @@ def main() -> int:
             downloaded += 1
 
     save_seen_ids(seen_ids)
-    print(f"Finished. Downloaded={downloaded}, Skipped={skipped}, Seen={len(seen_ids)}")
+    print(
+        f"Finished. Downloaded={downloaded}, Skipped={skipped}, "
+        f"Seen={len(seen_ids)}, Limit={MAX_DOWNLOADS_PER_RUN}"
+    )
     return 0
 
 

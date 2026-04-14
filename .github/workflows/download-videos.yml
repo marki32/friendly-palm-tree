@@ -3,6 +3,7 @@ name: Download Daily Videos
 on:
   schedule:
     - cron: "0 4 * * *"
+    - cron: "0 16 * * *"
   workflow_dispatch:
 
 permissions:
@@ -31,6 +32,7 @@ jobs:
 
       - name: Run downloader
         env:
+          MAX_DOWNLOADS_PER_RUN: "1"
           PYTHONUNBUFFERED: "1"
         run: python run_picturesfolder_downloader.py
 
