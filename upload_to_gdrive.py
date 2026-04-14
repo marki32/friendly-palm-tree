@@ -3,29 +3,52 @@ import os
 from pathlib import Path
 
 from google.oauth2 import service_account
+from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
 BASE_DIR = Path(__file__).resolve().parent
 SAVE_FOLDER = Path(os.getenv("SAVE_FOLDER", BASE_DIR / "picturesfolder_downloads"))
 GDRIVE_FOLDER_ID = os.getenv("GDRIVE_FOLDER_ID", "1Tr81azh0890emP6i2pF7l55nGuDjUgDR")
-# Can be a path to a file or the JSON string itself
-GDRIVE_CREDENTIALS = os.getenv("GDRIVE_CREDENTIALS_JSON", str(BASE_DIR / "camera-f5682-0157c9a591c2.json"))
+
+# Support both Service Account and OAuth2 Token
+GDRIVE_CREDENTIALS = os.getenv("GDRIVE_CREDENTIALS_JSON", "")
+GDRIVE_TOKEN = os.getenv("GDRIVE_TOKEN_JSON", "")
 
 SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 
 
 def get_gdrive_service():
-    if Path(GDRIVE_CREDENTIALS).exists():
-        creds = service_account.Credentials.from_service_account_file(
-            GDRIVE_CREDENTIALS, scopes=SCOPES
-        )
-    else:
-        # Assume it's a JSON string
-        info = json.loads(GDRIVE_CREDENTIALS)
-        creds = service_account.Credentials.from_service_account_info(
-            info, scopes=SCOPES
-        )
+    creds = None
+    
+    # 1. Try OAuth2 User Token (Preferred to avoid quota issues)
+    if GDRIVE_TOKEN:
+        try:
+            token_info = json.loads(GDRIVE_TOKEN)
+            creds = Credentials.from_authorized_user_info(token_info, SCOPES)
+            print("Using User OAuth2 token for authentication.")
+        except Exception as e:
+            print(f"Failed to load user token: {e}")
+
+    # 2. Try Service Account JSON (Fallback)
+    if not creds and GDRIVE_CREDENTIALS:
+        try:
+            if Path(GDRIVE_CREDENTIALS).exists():
+                creds = service_account.Credentials.from_service_account_file(
+                    GDRIVE_CREDENTIALS, scopes=SCOPES
+                )
+            else:
+                info = json.loads(GDRIVE_CREDENTIALS)
+                creds = service_account.Credentials.from_service_account_info(
+                    info, scopes=SCOPES
+                )
+            print("Using Service Account for authentication.")
+        except Exception as e:
+            print(f"Failed to load service account: {e}")
+
+    if not creds:
+        raise RuntimeError("No valid Google Drive credentials found (Token or Service Account).")
+        
     return build("drive", "v3", credentials=creds)
 
 
