@@ -53,8 +53,24 @@ def download_video(post_url: str) -> bool:
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            # 1. Download and get info
             info = ydl.extract_info(post_url, download=True)
-            print(f"Downloaded: {info.get('title', 'Video')}")
+            video_path = Path(ydl.prepare_filename(info)).with_suffix(".mp4")
+            
+            # 2. Extract and save metadata to JSON
+            metadata = {
+                "title": info.get("title"),
+                "description": info.get("description"),
+                "source_url": post_url,
+                "uploader": info.get("uploader"),
+                "upload_date": info.get("upload_date"),
+            }
+            
+            metadata_path = video_path.with_suffix(".json")
+            with metadata_path.open("w", encoding="utf-8") as f:
+                json.dump(metadata, f, indent=4, ensure_ascii=False)
+                
+            print(f"Downloaded: {info.get('title', 'Video')} (with Metadata)")
         return True
     except Exception as exc:
         print(f"Failed: {post_url} -> {exc}")

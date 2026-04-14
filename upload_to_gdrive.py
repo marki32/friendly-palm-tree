@@ -66,11 +66,15 @@ def get_gdrive_service():
 def iter_video_files() -> list[Path]:
     if not SAVE_FOLDER.exists():
         return []
-    return sorted(path for path in SAVE_FOLDER.iterdir() if path.suffix.lower() == ".mp4")
+    # Find both .mp4 and .json files
+    return sorted(path for path in SAVE_FOLDER.iterdir() if path.suffix.lower() in [".mp4", ".json"])
 
 
 def upload_file(service, video_path: Path) -> None:
     print(f"Uploading {video_path.name} to Google Drive...")
+    
+    # Determine mimetype based on extension
+    mimetype = "video/mp4" if video_path.suffix.lower() == ".mp4" else "application/json"
     
     file_metadata = {
         "name": video_path.name,
@@ -78,7 +82,7 @@ def upload_file(service, video_path: Path) -> None:
     }
     media = MediaFileUpload(
         str(video_path),
-        mimetype="video/mp4",
+        mimetype=mimetype,
         resumable=True
     )
     
