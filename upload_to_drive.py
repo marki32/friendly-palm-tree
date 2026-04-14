@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 
@@ -8,10 +9,8 @@ from googleapiclient.http import MediaFileUpload
 
 BASE_DIR = Path(__file__).resolve().parent
 SAVE_FOLDER = Path(os.getenv("SAVE_FOLDER", BASE_DIR / "picturesfolder_downloads"))
-SERVICE_ACCOUNT_FILE = Path(
-    os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE", BASE_DIR / "google-service-account.json")
-)
 DRIVE_FOLDER_ID = os.getenv("GOOGLE_DRIVE_FOLDER_ID", "")
+SERVICE_ACCOUNT_JSON = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "")
 
 
 def iter_video_files() -> list[Path]:
@@ -21,8 +20,12 @@ def iter_video_files() -> list[Path]:
 
 
 def build_drive_service():
-    credentials = service_account.Credentials.from_service_account_file(
-        str(SERVICE_ACCOUNT_FILE),
+    if not SERVICE_ACCOUNT_JSON.strip():
+        raise RuntimeError("GOOGLE_SERVICE_ACCOUNT_JSON is not set")
+
+    info = json.loads(SERVICE_ACCOUNT_JSON)
+    credentials = service_account.Credentials.from_service_account_info(
+        info,
         scopes=["https://www.googleapis.com/auth/drive.file"],
     )
     return build("drive", "v3", credentials=credentials)
@@ -46,10 +49,6 @@ def upload_file(service, video_path: Path) -> None:
 def main() -> int:
     if not DRIVE_FOLDER_ID:
         raise RuntimeError("GOOGLE_DRIVE_FOLDER_ID is not set")
-    if not SERVICE_ACCOUNT_FILE.exists():
-        raise FileNotFoundError(
-            f"Service account file not found: {SERVICE_ACCOUNT_FILE}"
-        )
 
     video_files = iter_video_files()
     if not video_files:
