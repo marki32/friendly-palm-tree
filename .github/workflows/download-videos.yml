@@ -40,9 +40,13 @@ jobs:
         env:
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
         run: |
-          cat <<'EOF' > google-service-account.json
-          $GOOGLE_SERVICE_ACCOUNT_JSON
-          EOF
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          secret = os.environ["GOOGLE_SERVICE_ACCOUNT_JSON"]
+          Path("google-service-account.json").write_text(secret, encoding="utf-8")
+          PY
 
       - name: Upload video to Google Drive
         env:
