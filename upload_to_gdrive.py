@@ -14,6 +14,7 @@ GDRIVE_FOLDER_ID = os.getenv("GDRIVE_FOLDER_ID", "1Tr81azh0890emP6i2pF7l55nGuDjU
 # Support both Service Account and OAuth2 Token
 GDRIVE_CREDENTIALS = os.getenv("GDRIVE_CREDENTIALS_JSON", "")
 GDRIVE_TOKEN = os.getenv("GDRIVE_TOKEN_JSON", "")
+GDRIVE_CLIENT = os.getenv("GDRIVE_CLIENT_JSON", "")
 
 SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 
@@ -25,6 +26,16 @@ def get_gdrive_service():
     if GDRIVE_TOKEN:
         try:
             token_info = json.loads(GDRIVE_TOKEN)
+            
+            # If client_id/secret are missing, try to get them from GDRIVE_CLIENT
+            if 'client_id' not in token_info and GDRIVE_CLIENT:
+                client_info = json.loads(GDRIVE_CLIENT)
+                # Handle both 'installed' and 'web' formats
+                config = client_info.get('installed') or client_info.get('web')
+                if config:
+                    token_info['client_id'] = config.get('client_id')
+                    token_info['client_secret'] = config.get('client_secret')
+            
             creds = Credentials.from_authorized_user_info(token_info, SCOPES)
             print("Using User OAuth2 token for authentication.")
         except Exception as e:
