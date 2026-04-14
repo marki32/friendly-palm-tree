@@ -36,6 +36,20 @@ jobs:
           PYTHONUNBUFFERED: "1"
         run: python run_picturesfolder_downloader.py
 
+      - name: Write Google service account key
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          cat <<'EOF' > google-service-account.json
+          $GOOGLE_SERVICE_ACCOUNT_JSON
+          EOF
+
+      - name: Upload video to Google Drive
+        env:
+          GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+          GOOGLE_SERVICE_ACCOUNT_FILE: google-service-account.json
+        run: python upload_to_drive.py
+
       - name: Upload downloaded videos as artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -44,6 +58,10 @@ jobs:
           path: picturesfolder_downloads
           if-no-files-found: ignore
           retention-days: 7
+
+      - name: Clean up Google service account key
+        if: always()
+        run: rm -f google-service-account.json
 
       - name: Commit updated seen state
         run: |
