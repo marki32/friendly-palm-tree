@@ -36,11 +36,11 @@ jobs:
           PYTHONUNBUFFERED: "1"
         run: python run_picturesfolder_downloader.py
 
-      - name: Upload video to Google Drive
+      - name: Upload video to Dropbox
         env:
-          GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
-          GOOGLE_SERVICE_ACCOUNT_JSON_B64: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON_B64 }}
-        run: python upload_to_drive.py
+          DROPBOX_ACCESS_TOKEN: ${{ secrets.DROPBOX_ACCESS_TOKEN }}
+          DROPBOX_FOLDER: "/"
+        run: python upload_to_dropbox.py
 
       - name: Upload downloaded videos as artifact
         if: always()
