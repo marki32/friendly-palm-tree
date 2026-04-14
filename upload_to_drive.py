@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 from pathlib import Path
@@ -11,6 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent
 SAVE_FOLDER = Path(os.getenv("SAVE_FOLDER", BASE_DIR / "picturesfolder_downloads"))
 DRIVE_FOLDER_ID = os.getenv("GOOGLE_DRIVE_FOLDER_ID", "")
 SERVICE_ACCOUNT_JSON = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "")
+SERVICE_ACCOUNT_JSON_B64 = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON_B64", "")
 
 
 def iter_video_files() -> list[Path]:
@@ -20,10 +22,17 @@ def iter_video_files() -> list[Path]:
 
 
 def build_drive_service():
-    if not SERVICE_ACCOUNT_JSON.strip():
-        raise RuntimeError("GOOGLE_SERVICE_ACCOUNT_JSON is not set")
+    raw_json = SERVICE_ACCOUNT_JSON.strip()
+    if SERVICE_ACCOUNT_JSON_B64.strip():
+        decoded = base64.b64decode(SERVICE_ACCOUNT_JSON_B64.encode("utf-8"))
+        raw_json = decoded.decode("utf-8")
 
-    info = json.loads(SERVICE_ACCOUNT_JSON)
+    if not raw_json:
+        raise RuntimeError(
+            "GOOGLE_SERVICE_ACCOUNT_JSON or GOOGLE_SERVICE_ACCOUNT_JSON_B64 must be set"
+        )
+
+    info = json.loads(raw_json)
     credentials = service_account.Credentials.from_service_account_info(
         info,
         scopes=["https://www.googleapis.com/auth/drive.file"],
