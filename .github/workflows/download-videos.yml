@@ -53,14 +53,14 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-      - name: Commit updated seen state
+      - name: Commit updated state
         run: |
-          if git diff --quiet -- seen_tweets.json; then
+          if git diff --quiet -- seen_tweets.json urls.txt; then
             echo "No state changes to commit."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add seen_tweets.json
-          git commit -m "Update seen tweet IDs"
+          git add seen_tweets.json urls.txt
+          git commit -m "Update seen IDs and cleanup urls.txt"
           git push

@@ -61,6 +61,12 @@ def download_video(post_url: str) -> bool:
         return False
 
 
+def save_urls(urls: list[str]) -> None:
+    with URLS_FILE.open("w", encoding="utf-8") as handle:
+        for url in urls:
+            handle.write(f"{url}\n")
+
+
 def main() -> int:
     SAVE_FOLDER.mkdir(parents=True, exist_ok=True)
     seen_ids = load_seen_ids()
@@ -70,26 +76,34 @@ def main() -> int:
 
     downloaded = 0
     skipped = 0
+    remaining_urls = []
 
     for post_url in urls:
-        if downloaded >= MAX_DOWNLOADS_PER_RUN:
-            print(f"Reached per-run limit: {MAX_DOWNLOADS_PER_RUN}")
-            break
-
         post_id = extract_post_id(post_url)
+        
+        # 1. Skip if already seen (and remove from urls.txt)
         if post_id in seen_ids:
             print(f"Skipping already seen post: {post_id}")
             skipped += 1
             continue
-
-        if download_video(post_url):
-            seen_ids.add(post_id)
-            downloaded += 1
+            
+        # 2. Try to download if under limit
+        if downloaded < MAX_DOWNLOADS_PER_RUN:
+            if download_video(post_url):
+                seen_ids.add(post_id)
+                downloaded += 1
+                # Successfully processed, so we DON'T add to remaining_urls
+                continue
+        
+        # 3. If we reached the limit OR download failed, keep it in the list for next time
+        remaining_urls.append(post_url)
 
     save_seen_ids(seen_ids)
+    save_urls(remaining_urls)
+    
     print(
         f"Finished. Downloaded={downloaded}, Skipped={skipped}, "
-        f"Seen={len(seen_ids)}, Limit={MAX_DOWNLOADS_PER_RUN}"
+        f"Remaining URLs={len(remaining_urls)}, Seen Total={len(seen_ids)}"
     )
     return 0
 
