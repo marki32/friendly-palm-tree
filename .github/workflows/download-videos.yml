@@ -1,0 +1,56 @@
+name: Download Daily Videos
+
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run downloader
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: python run_picturesfolder_downloader.py
+
+      - name: Upload downloaded videos as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: downloaded-videos
+          path: picturesfolder_downloads
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Commit updated seen state
+        run: |
+          if git diff --quiet -- seen_tweets.json; then
+            echo "No state changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add seen_tweets.json
+          git commit -m "Update seen tweet IDs"
+          git push
